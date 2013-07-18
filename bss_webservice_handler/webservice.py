@@ -164,7 +164,6 @@ class webservice(osv.osv):
 
     
     def default_read_encode(self, cr, uid, model, last_success, parameters, datetime_format):
-        logger = logging.getLogger('bss.webservice')
         str_last_success = str(last_success)
         if parameters:
             search_param = "['&', "+parameters+", '|' ,('create_date', '>=', '"+str_last_success+"'), '&', ('write_date', '!=', False), ('write_date', '>=', '"+str_last_success+"')]"
@@ -172,8 +171,8 @@ class webservice(osv.osv):
             search_param = "['|' ,('create_date', '>=', '"+str_last_success+"'), '&', ('write_date', '!=', False), ('write_date', '>=', '"+str_last_success+"')]"
         encode_ids = model.search(cr, uid, eval(search_param))
         encodes = model.browse(cr, uid, encode_ids)
-        logger.debug('model columns = %s', str(model._columns))
-        logger.debug('model fields = %s', str(model.fields_get(cr,uid)))
+        self._logger.debug('model columns = %s', str(model._columns))
+        self._logger.debug('model fields = %s', str(model.fields_get(cr,uid)))
         encode_list = list()
         field_list = model.fields_get(cr,uid)
         for encode in encodes:
@@ -199,22 +198,21 @@ class webservice(osv.osv):
             encode_dict['openerp_id']=encode.id
             encode_list.append(encode_dict)
         
-        logger.debug('result list %s',encode_list)
+        self._logger.debug('result list %s',encode_list)
         return json.dumps(encode_list)
     
     def default_decode_write(self, cr, uid, model, content, db_keys, datetime_format):
-        logger = logging.getLogger('bss.webservice')
         decoded_list = json.loads(content)
-        logger.debug("List is : %s, length is %d",str(decoded_list),len(decoded_list))
+        self._logger.debug("List is : %s, length is %d",str(decoded_list),len(decoded_list))
         if not decoded_list:
             return True
         elif len(decoded_list)==0:
-            logger.debug("List is empty")
+            self._logger.debug("List is empty")
             return True
         field_list = model.fields_get(cr,uid)
 
         for decoded in decoded_list:
-            logger.debug("Decoded is : %s, length is %d",str(decoded),len(decoded))
+            self._logger.debug("Decoded is : %s, length is %d",str(decoded),len(decoded))
             if db_keys:
                 db_key_list = db_keys.split(',')
                 param_list = []
@@ -231,14 +229,13 @@ class webservice(osv.osv):
             data = webservice.purge_data(field_list, decoded, datetime_format)
             
             if oid:
-                logger.info('oid is %s, data is %s',oid,data)
+                self._logger.info('oid is %s, data is %s',oid,data)
                 model.write(cr, uid, oid,data)
             else:
                 model.create(cr, uid, data)
         return True
     
     def service_get(self, cr, uid, service, model):
-        logger = logging.getLogger('bss.webservice')
         http = httplib2.Http(".cache")
         if service.http_auth_type != 'NONE':
             http.add_credentials(service.http_auth_login, service.http_auth_password)
@@ -250,10 +247,10 @@ class webservice(osv.osv):
             headers["Authorization"] = "Basic {0}".format(base64.b64encode("{0}:{1}".format(service.http_auth_login, service.http_auth_password)))
         if service.last_success:
             headers['Last-Success'] = webservice.date2str(service.last_success, 'datetime', 'ISO8601')
-        logger.debug('Url : %s \\n', url)
+        self._logger.debug('Url : %s \\n', url)
         response, content = http.request(url, "GET", headers=headers)
-#        logger.debug('Response: %s \n%s', response, content)
-        logger.debug('Response: %s ', response)
+#        self._logger.debug('Response: %s \n%s', response, content)
+        self._logger.debug('Response: %s ', response)
         success = False
         if response.status == 200:
             if model and service.decode_method_name and hasattr(model, service.decode_method_name):
@@ -269,7 +266,6 @@ class webservice(osv.osv):
         return (success, response, content)
     
     def service_push(self, cr, uid, service, model):
-        logger = logging.getLogger('bss.webservice')
         http = httplib2.Http(".cache")
         if service.http_auth_type != 'NONE':
             http.add_credentials(service.http_auth_login, service.http_auth_password)
@@ -288,9 +284,9 @@ class webservice(osv.osv):
             content = method(cr, uid, model, last_success, service.push_filter, service.datetime_format)
         else:
             content = self.default_read_encode(cr, uid, model, last_success, service.push_filter, service.datetime_format)
-        logger.debug('Url : %s \nBody:\n%s\n', url, content)
+        self._logger.debug('Url : %s \nBody:\n%s\n', url, content)
         response, resp_content = http.request(url, "POST", headers=headers, body=content)
-        logger.debug('Response: %s \n%s', response, resp_content)
+        self._logger.debug('Response: %s \n%s', response, resp_content)
         success = False
         if response.status == 200:
             success = True
@@ -303,7 +299,6 @@ class webservice(osv.osv):
             context={}
         if isinstance(service_id, list):
             service_id = service_id[0]
-        logger = logging.getLogger('bss.webservice')
         
         service_cr = self.pool.db.cursor()
 #        db_name = db.dbname
@@ -313,21 +308,22 @@ class webservice(osv.osv):
         
         try:
             with webservice_lock:
-                service = self.browse(service_cr, uid, [service_id], context)[0]
+                service = self.browse(cr, uid, [service_id], context)[0]
                 if service.is_running:
-                    logger.error('Duplicate webservice %s call',service_id)
+                    self._logger.error('Duplicate webservice %s call',service_id)
                     raise DuplicateCallException()
                 else:
-                    self.write(service_cr, uid, service_id, {'is_running':True})
-                    service_cr.commit()
+                    self.write(cr, uid, service_id, {'is_running':True})
+                    cr.commit()
                          
-            logger.info('Model name is %s', service.model_name)
+            self._logger.info('Model name is %s', service.model_name)
             model = self.pool.get(service.model_name)
-            logger.info('Model  is %s', model)
+            self._logger.info('Model  is %s', model)
             if model and service.before_method_name and hasattr(model,service.before_method_name):
                 method = getattr(model,service.before_method_name)
                 method(service_cr, uid)
-            
+                
+#            Prepared for field automatic translation !
     #        service_field_obj = self.pool.get('bss.webservice_field')
     #        service_field_ids = service_field_obj.search(cr,uid,[('service_id','=',service_id)])
     #        if service_field_ids:
@@ -358,14 +354,15 @@ class webservice(osv.osv):
                 method(service_cr, uid, get_resp_content, push_resp_content)
             
             if success:    
+                service_cr.commit() 
                 with webservice_lock:
-                    self.write(service_cr, uid, service_id, {'last_run':now,'last_success':now, 'is_running': False})
-                    service_cr.commit()
+                    self.write(cr, uid, service_id, {'last_run':now,'last_success':now, 'is_running': False})
+                    cr.commit()
             else:
                 service_cr.rollback()
                 with webservice_lock:
-                    self.write(service_cr, uid, service_id, {'last_run':now, 'is_running': False})
-                    service_cr.commit()
+                    self.write(cr, uid, service_id, {'last_run':now, 'is_running': False})
+                    cr.commit()
                                
             call_param = {'service_id': service_id, 'call_moment': now, 'success': success}
             if get_response:
@@ -377,20 +374,20 @@ class webservice(osv.osv):
                 call_param['push_reason']=push_response.reason
                 call_param['push_body']= push_resp_content
                 
-            call_obj.create(service_cr, uid, call_param)
-            self.clear_call(service_cr, uid, [service_id], context)
-            service_cr.commit()
+            call_obj.create(cr, uid, call_param)
+            self.clear_call(cr, uid, [service_id], context)
+            cr.commit()
         except DuplicateCallException, e:
-            logger.exception("DuplicateCallException occured during webservice: %s", e)
+            self._logger.exception("DuplicateCallException occured during webservice: %s", e)
             success= False
             service_cr.rollback()
         except Exception, e:
-            logger.exception("Exception occured during webservice: %s", e)
+            self._logger.exception("Exception occured during webservice: %s", e)
             success= False
             service_cr.rollback()
             with webservice_lock:
-                self.write(service_cr, uid, service_id, {'last_run':now, 'is_running': False})
-                service_cr.commit()
+                self.write(cr, uid, service_id, {'last_run':now, 'is_running': False})
+                cr.commit()
         finally:
             service_cr.close()  
         if success and service and service.next_service:
