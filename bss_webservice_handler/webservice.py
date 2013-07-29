@@ -401,11 +401,21 @@ class webservice(osv.osv):
         for service_id in ids:
             success = success and self.do_run(cr, uid, service_id, context)
         return success
+    
+    def _run_service_multithread(self, cr, uid, ids, context=None):
+        service_cr = self.pool.db.cursor()
+        success = self._run_service(service_cr, uid, ids, context)
+        try:
+            service_cr.commit()
+        finally:
+            service_cr.close()
+            
+        return success
 
     def run_service_multithread(self, cr, uid, ids, context=None):
         try:
             # Spawn a thread to execute the webservices
-            task_thread = threading.Thread(target=self._run_service, args=(cr, uid, ids))
+            task_thread = threading.Thread(target=self._run_service_multithread, args=(cr, uid, ids))
             task_thread.setDaemon(False)
             task_thread.start()
             self._logger.debug('Webservice thread spawned')
