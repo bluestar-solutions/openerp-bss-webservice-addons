@@ -80,6 +80,21 @@
         </record>
         
         <record model="ir.ui.view" id="bss_webservice_tree">
+            <field name="name">bss.webservice.tree</field>
+            <field name="model">bss.webservice</field>
+            <field name="arch" type="xml">
+            	<tree string="Webservices">
+            		<field name="active" />
+            		<field name="name" />
+            		<field name="model_name" />
+            		<field name="last_run" />
+            		<field name="last_success" />
+            		<button name="run_service_multithread" string="Run Service" type="object" icon="STOCK_EXECUTE" />
+            	</tree>
+            </field>
+		</record>
+        
+        <record model="ir.ui.view" id="bss_webservice_call_tree">
             <field name="name">bss.webservice_call.tree</field>
             <field name="model">bss.webservice_call</field>
             <field name="arch" type="xml">
