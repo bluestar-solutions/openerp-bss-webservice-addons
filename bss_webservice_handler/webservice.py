@@ -75,7 +75,7 @@ class webservice(osv.osv):
         'call_limit_in_error': fields.float('Error log limit', required=True, help="Defines how many hours the log entries with errors must be kept."),
     }
     
-    _default= {
+    _defaults = {
         'wait_retry_minutes': 5,
         'wait_next_minutes':720,
         'priority': 16,
