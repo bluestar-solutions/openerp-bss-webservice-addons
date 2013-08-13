@@ -77,14 +77,14 @@ class webservice(osv.osv):
     
     _defaults = {
         'wait_retry_minutes': 5,
-        'wait_next_minutes':720,
+        'wait_next_minutes': 60,
         'priority': 16,
         'active': True,
         'last_run': datetime(1970,1,1),        
         'last_success': datetime(1970,1,1),
         'datetime_format': 'TIMESTAMP',
-        'call_limit': 0,
-        'call_limit_in_error': 1.0,
+        'call_limit': 50,
+        'call_limit_in_error': 72.0,
     }
     _order = "priority, last_success"
     
@@ -455,7 +455,14 @@ class webservice(osv.osv):
                     DELETE FROM bss_webservice_call
                     WHERE call_moment < '%s'
                         and service_id = %s
-                           """ % ((datetime.now() - timedelta(hours=ws.call_limit_in_error)).isoformat(),ws.id))
+                        and id NOT IN (
+                            SELECT id
+                            FROM bss_webservice_call
+                            WHERE service_id = %s
+                            ORDER BY call_moment DESC
+                            LIMIT %s
+                            )
+                           """ % ((datetime.now() - timedelta(hours=ws.call_limit_in_error)).isoformat(),ws.id,ws.id,ws.call_limit))
             else:
                 cr.execute("""
                     DELETE FROM bss_webservice_call

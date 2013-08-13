@@ -99,7 +99,6 @@
             <field name="model">bss.webservice_call</field>
             <field name="arch" type="xml">
                 <tree string="" create="0" colors="darkred:call_result=='error';orange:call_result=='warn';green:call_result=='ok';">
-                    <button name="run_service_multithread" string="Run Service" type="object" icon="gtk-execute"/>
 				    <field name="service_id" />
 				    <field name="call_moment" />
 				    <field name="success" />
