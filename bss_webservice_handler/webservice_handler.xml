@@ -45,7 +45,7 @@
 		                    <field name="ws_protocol" />
 		                    <field name="ws_host" />
 		                    <field name="ws_port" />
-		                    <field name="ws_path" />
+		                    <field name="ws_path" widget="text" class="ws_path_text" />
 		                    <field name="push_filter" />
                     		<field name="get_db_key" />
                     		<field name="datetime_format" />

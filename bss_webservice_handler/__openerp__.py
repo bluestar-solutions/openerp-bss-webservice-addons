@@ -21,7 +21,7 @@
 
 {
     "name": "Webservice Handler",
-    'version': '7.0.2.0',
+    'version': '7.0.2.0-1',
     "category" : "Bluestar/Addons/WS",
     "complexity": "easy",
     "description": """
@@ -126,6 +126,7 @@ The returned result indicates if the decoding was successfull.
                    'webservice_handler.xml'],
     'demo_xml': [],
     'test': [],
+    "css": ['static/src/css/bss_wss.css'],
     'installable': True,
     'application': False,
     'auto_install': False,
