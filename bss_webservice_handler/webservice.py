@@ -143,6 +143,8 @@ class webservice(osv.osv):
     def date2str(datevalue, date_type, date_format):
         if not datevalue:
             return None
+        elif isinstance(datevalue, basestring):
+            datevalue = dateparser.parse(datevalue)
         
         # According datevalue type to date_type :
         if date_type == 'date':
