@@ -236,7 +236,7 @@ class webservice(osv.osv):
         return True
     
     def service_get(self, cr, uid, service, model):
-        http = httplib2.Http(".cache")
+        http = httplib2.Http()
         if service.http_auth_type != 'NONE':
             http.add_credentials(service.http_auth_login, service.http_auth_password)
         url = '%(ws_protocol)s://%(ws_host)s:%(ws_port)s%(ws_path)s' % service
@@ -266,7 +266,7 @@ class webservice(osv.osv):
         return (success, response, content)
     
     def service_push(self, cr, uid, service, model):
-        http = httplib2.Http(".cache")
+        http = httplib2.Http()
         if service.http_auth_type != 'NONE':
             http.add_credentials(service.http_auth_login, service.http_auth_password)
         url = '%(ws_protocol)s://%(ws_host)s:%(ws_port)s%(ws_path)s' % service
