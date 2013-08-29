@@ -144,14 +144,14 @@ class webservice(osv.osv):
                 return int(mktime(strptime(string,"%H:%M:S")))
         elif date_format == 'ISO8601':
             if date_type=='datetime':
-                return datetime.strftime(datetime.strptime(string,"%Y-%m-%d %H:%M:%S.%f"),'%Y-%m-%dT%H:%M:S')
+                return datetime.strftime(dateparser.parse(string), '%Y-%m-%dT%H:%M:S')
             elif date_type in ('date','time'):
                 return string
         elif date_format == 'SWISS':
             if date_type=='date':
-                return datetime.strftime(datetime.strptime(string,"%Y-%m-%d"),'%d.%m.%Y')            
+                return datetime.strftime(dateparser.parse(string), '%d.%m.%Y')            
             elif date_type=='datetime':
-                return datetime.strftime(datetime.strptime(string,"%Y-%m-%d %H:%M:%S.%f"),'%d.%m.%Y %H:%M:S')
+                return datetime.strftime(dateparser.parse(string), '%d.%m.%Y %H:%M:S')
             elif date_type=='time':
                 return string
         return None

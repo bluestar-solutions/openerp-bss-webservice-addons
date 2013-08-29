@@ -24,6 +24,7 @@ from openerp.osv import osv, fields
 from openerp.netsvc import logging
 from openerp.tools.translate import _
 from datetime import datetime, timedelta
+from dateutil import parser as dateparser
 
 class webservice_handler(osv.osv_memory):
     _name = 'bss.webservice_handler'
@@ -74,14 +75,6 @@ class webservice_handler(osv.osv_memory):
             cron_id = cron_obj.create(cr, uid, self.cron, context)
 
         return cron_id
-    
-    def full_datetime_parse(self, datetime_string):
-        result = None
-        try:
-            result = datetime.strptime(datetime_string, "%Y-%m-%d %H:%M:%S.%f")
-        except ValueError:
-            result = datetime.strptime(datetime_string, "%Y-%m-%d %H:%M:%S")
-        return result
 
     def run_all(self, cr, uid, context=None):
         _logger = logging.getLogger('bss.webservice_handler')
@@ -102,9 +95,9 @@ class webservice_handler(osv.osv_memory):
             if service.last_run:
                 _logger.debug('last_run is %s', str(service.last_run))
                 if service.last_success and service.last_success == service.last_run:
-                    next_run =  self.full_datetime_parse(service.last_run) + timedelta(minutes=service.wait_next_minutes)
+                    next_run =  dateparser.parse(service.last_run) + timedelta(minutes=service.wait_next_minutes)
                 else:
-                    next_run =  self.full_datetime_parse(service.last_run) + timedelta(minutes=service.wait_retry_minutes)
+                    next_run =  dateparser.parse(service.last_run) + timedelta(minutes=service.wait_retry_minutes)
             else:
                 next_run = datetime(2000,1,1)
             _logger.info('Service %s next run at %s',service.name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
