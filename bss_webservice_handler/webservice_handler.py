@@ -25,6 +25,7 @@ from openerp.netsvc import logging
 from openerp.tools.translate import _
 from datetime import datetime, timedelta
 from dateutil import parser as dateparser
+import webservice
 
 class webservice_handler(osv.osv_memory):
     _name = 'bss.webservice_handler'
@@ -50,7 +51,7 @@ class webservice_handler(osv.osv_memory):
             'priority': 2,
             'interval_number': 1,
             'interval_type': 'minutes',
-            'nextcall': time.strftime("%Y-%m-%d %H:%M:%S",
+            'nextcall': time.strftime(webservice.ISO8601_ALT_DATETIME_FORMAT,
                                       datetime.now().timetuple()),  # in one minute
             'numbercall': -1,
             'doall': False,
@@ -100,7 +101,7 @@ class webservice_handler(osv.osv_memory):
                     next_run =  dateparser.parse(service.last_run) + timedelta(minutes=service.wait_retry_minutes)
             else:
                 next_run = datetime(2000,1,1)
-            _logger.info('Service %s next run at %s',service.name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
+            _logger.info('Service %s next run at %s',service.name, next_run.strftime(webservice.ISO8601_ALT_DATETIME_FORMAT))
             if next_run < datetime.now():
                 _logger.debug('Context is %s', str(context))
                 webservice_obj.do_run(cr, uid, service.id, context)
