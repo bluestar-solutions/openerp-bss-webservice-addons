@@ -21,8 +21,8 @@
 
 from openerp.osv import osv, fields
 from openerp.netsvc import logging
-from datetime import date, datetime, timedelta
-from time import mktime, strptime
+from datetime import date, time, datetime, timedelta
+from time import mktime
 import json
 import httplib2
 from dateutil import parser as dateparser
@@ -32,6 +32,14 @@ import base64
 WEBSERVICE_TYPE = [('GET','Get'),('PUSH', 'Push'),('PUSH_GET','Push Get Sync'),('GET_PUSH','Get Push Sync'),]
 HTTP_AUTH_TYPE = [('NONE', 'None'), ('BASIC', 'Basic')]
 DATETIME_FORMAT = [('TIMESTAMP','Epoch'),('ISO8601','ISO 8601'),('SWISS','Swiss "dd.mm.yyyy HH:MM:SS" format')]
+    
+SWISS_DATE_FORMAT = '%d.%m.%Y'
+SWISS_TIME_FORMAT = '%H:%M:%S'
+SWISS_DATETIME_FORMAT = '%s %s' % (SWISS_DATE_FORMAT, SWISS_TIME_FORMAT)
+ISO8601_DATE_FORMAT = '%Y-%m-%d'
+ISO8601_TIME_FORMAT = '%H:%M:%S.%f'
+ISO8601_DATETIME_FORMAT = '%sT%s' % (ISO8601_DATE_FORMAT, ISO8601_TIME_FORMAT)
+ISO8601_ALT_DATETIME_FORMAT = '%s %s' % (ISO8601_DATE_FORMAT, ISO8601_TIME_FORMAT)
 
 webservice_lock = threading.Lock()
 
@@ -124,36 +132,53 @@ class webservice(osv.osv):
                 return dateparser.parse(string).time()
         elif date_format == 'SWISS':
             if date_type=='date':
-                return datetime.strptime(string,'%d.%m.%Y').date()
+                return datetime.strptime(string, SWISS_DATE_FORMAT).date()
             elif date_type=='datetime':
-                return datetime.strptime(string,'%d.%m.%Y %H:%M:S')
+                return datetime.strptime(string, SWISS_DATETIME_FORMAT)
             elif date_type=='time':
-                return datetime.strptime(string,'%H:%M:S').time()
+                return datetime.strptime(string, SWISS_TIME_FORMAT).time()
         return None
       
     @staticmethod
-    def date2str(string, date_type, date_format):
-        if not string:
+    def date2str(datevalue, date_type, date_format):
+        if not datevalue:
             return None
+        elif isinstance(datevalue, basestring):
+            datevalue = dateparser.parse(datevalue)
+        
+        # According datevalue type to date_type :
+        if date_type == 'date':
+            if isinstance(datevalue, datetime):
+                datevalue = datevalue.date()
+            if isinstance(datevalue, time):
+                return None
+        if date_type == 'datetime':
+            if isinstance(datevalue, date):
+                datevalue = datetime.combine(datevalue, time())
+            if isinstance(datevalue, time):
+                datevalue = datetime.combine(date(1900, 1, 1), time())
+        if date_type == 'time':
+            if isinstance(datevalue, date):
+                datevalue = time()
+            if isinstance(datevalue, datetime):
+                datevalue = datevalue.time()
+
         if date_format == 'TIMESTAMP':
-            if date_type=='date':
-                return int(mktime(strptime(string,"%Y-%m-%d")))
-            elif date_type=='datetime':
-                return int(mktime(strptime(string,"%Y-%m-%d %H:%M:%S.%f")))
-            elif date_type=='time':
-                return int(mktime(strptime(string,"%H:%M:S")))
+            if isinstance(datevalue, date) or isinstance(datevalue, datetime):
+                return str(int(mktime(datevalue.timetuple())))
+            elif isinstance(datevalue, time):
+                return str(int(timedelta(hours=datevalue.hour, minutes=datevalue.minute, seconds=datevalue.second, 
+                                         microseconds=datevalue.microsecond).total_seconds()))
         elif date_format == 'ISO8601':
-            if date_type=='datetime':
-                return datetime.strftime(datetime.strptime(string,"%Y-%m-%d %H:%M:%S.%f"),'%Y-%m-%dT%H:%M:S')
-            elif date_type in ('date','time'):
-                return string
+            if isinstance(datevalue, date) or isinstance(datevalue, datetime) or isinstance(datevalue, time):
+                return datevalue.isoformat()
         elif date_format == 'SWISS':
-            if date_type=='date':
-                return datetime.strftime(datetime.strptime(string,"%Y-%m-%d"),'%d.%m.%Y')            
-            elif date_type=='datetime':
-                return datetime.strftime(datetime.strptime(string,"%Y-%m-%d %H:%M:%S.%f"),'%d.%m.%Y %H:%M:S')
-            elif date_type=='time':
-                return string
+            if isinstance(datevalue, date):
+                return date.strftime(datevalue, SWISS_DATE_FORMAT)
+            if isinstance(datevalue, datetime):
+                return datetime.strftime(datevalue, SWISS_DATETIME_FORMAT)
+            if isinstance(datevalue, time):
+                return time.strftime(datevalue, SWISS_TIME_FORMAT)
         return None
             
     def create(self, cr, user, vals, context=None):
@@ -236,7 +261,7 @@ class webservice(osv.osv):
         return True
     
     def service_get(self, cr, uid, service, model):
-        http = httplib2.Http(".cache")
+        http = httplib2.Http()
         if service.http_auth_type != 'NONE':
             http.add_credentials(service.http_auth_login, service.http_auth_password)
         url = '%(ws_protocol)s://%(ws_host)s:%(ws_port)s%(ws_path)s' % service
@@ -266,7 +291,7 @@ class webservice(osv.osv):
         return (success, response, content)
     
     def service_push(self, cr, uid, service, model):
-        http = httplib2.Http(".cache")
+        http = httplib2.Http()
         if service.http_auth_type != 'NONE':
             http.add_credentials(service.http_auth_login, service.http_auth_password)
         url = '%(ws_protocol)s://%(ws_host)s:%(ws_port)s%(ws_path)s' % service
@@ -275,7 +300,7 @@ class webservice(osv.osv):
                    }  
 
         if service.last_success:
-            last_success = datetime.strptime(service.last_success,"%Y-%m-%d %H:%M:%S.%f")
+            last_success = dateparser.parse(service.last_success)
             headers['Last-Success'] = webservice.date2str(service.last_success, 'datetime', 'ISO8601')
         else:
             last_success = datetime(1970,1,1) 
