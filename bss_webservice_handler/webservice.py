@@ -148,19 +148,19 @@ class webservice(osv.osv):
         
         # According datevalue type to date_type :
         if date_type == 'date':
-            if isinstance(datevalue, datetime):
+            if type(datevalue) == datetime:
                 datevalue = datevalue.date()
-            if isinstance(datevalue, time):
+            if type(datevalue) == time:
                 return None
         if date_type == 'datetime':
-            if isinstance(datevalue, date):
+            if type(datevalue) == date:
                 datevalue = datetime.combine(datevalue, time())
-            if isinstance(datevalue, time):
+            if type(datevalue) == time:
                 datevalue = datetime.combine(date(1900, 1, 1), time())
         if date_type == 'time':
-            if isinstance(datevalue, date):
+            if type(datevalue) == date:
                 datevalue = time()
-            if isinstance(datevalue, datetime):
+            if type(datevalue) == datetime:
                 datevalue = datevalue.time()
 
         if date_format == 'TIMESTAMP':
