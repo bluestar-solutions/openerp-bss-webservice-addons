@@ -28,6 +28,8 @@ import httplib2
 from dateutil import parser as dateparser
 import threading
 import base64
+from webservice_call import RETURN_CODES, RESULT_OK
+import re
 
 WEBSERVICE_TYPE = [('GET','Get'),('PUSH', 'Push'),('PUSH_GET','Push Get Sync'),('GET_PUSH','Get Push Sync'),]
 HTTP_AUTH_TYPE = [('NONE', 'None'), ('BASIC', 'Basic')]
@@ -95,6 +97,13 @@ class webservice(osv.osv):
         'call_limit_in_error': 72.0,
     }
     _order = "priority, last_success"
+    
+    @staticmethod
+    def is_success_code(code):
+        for expr in [k for k, v in RETURN_CODES.items() if v == RESULT_OK]:
+            if re.compile(expr).search(str(code)) is not None:
+                return True
+        return False
     
     @staticmethod
     def purge_data(field_list, decoded, datetime_format):
@@ -277,9 +286,9 @@ class webservice(osv.osv):
 #        self._logger.debug('Response: %s \n%s', response, content)
         self._logger.debug('Response: %s ', response)
         success = False
-        if response.status == 200:
+        if webservice.is_success_code(response.status):
             if model and service.decode_method_name and hasattr(model, service.decode_method_name):
-                method = getattr(model,service.decode_method_name)
+                method = getattr(model, service.decode_method_name)
                 success = method(cr, uid, model, content, service.datetime_format)
             else:
                 success = self.default_decode_write(cr, uid, model, content, service.get_db_key, service.datetime_format)
@@ -313,7 +322,7 @@ class webservice(osv.osv):
         response, resp_content = http.request(url, "POST", headers=headers, body=content)
         self._logger.debug('Response: %s \n%s', response, resp_content)
         success = False
-        if response.status == 200:
+        if webservice.is_success_code(response.status):
             success = True
         else:
             success = False
