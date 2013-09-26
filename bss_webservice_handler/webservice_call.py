@@ -24,15 +24,18 @@ from openerp.netsvc import logging
 from datetime import datetime
 import re
 
-CALL_RESULT = [('ok','OK'),('warn','Warning'),('error','Error')]
+RESULT_OK = 'ok'
+RESULT_WARNING = 'warn'
+RESULT_ERROR = 'error'
+CALL_RESULT = [(RESULT_OK, 'OK'), (RESULT_WARNING, 'Warning'), (RESULT_ERROR, 'Error')]
 RETURN_CODES = {
-                r"(?!^206$)^[2]{1}[0-9]{2}$":'ok',      # 200 except 206
-                r"(?!^310$)^[3]{1}[0-9]{2}$":'warn',    # 300 except 310
-                r"^[4]{1}[0-9]{2}$":'error',            # 400
-                r"(?!^503$)^[5]{1}[0-9]{2}$":'error',   # 500 except 503
-                r"^(206|503)$":'warn',                  # 206 or 503
-                r"^310$":'error',                       # 310
-                }
+    r"(?!^206$)^[2]{1}[0-9]{2}$":   RESULT_OK,      # 200 except 206
+    r"(?!^310$)^[3]{1}[0-9]{2}$":   RESULT_WARNING, # 300 except 310
+    r"^[4]{1}[0-9]{2}$":            RESULT_ERROR,   # 400
+    r"(?!^503$)^[5]{1}[0-9]{2}$":   RESULT_ERROR,   # 500 except 503
+    r"^(206|503)$":                 RESULT_WARNING, # 206 or 503
+    r"^310$":                       RESULT_ERROR,   # 310
+}
 
 class webservice_call(osv.osv):
     _name = 'bss.webservice_call'
@@ -46,7 +49,7 @@ class webservice_call(osv.osv):
         res = {}
         
         for call in self.browse(cr, uid, ids, context):
-            res[call.id] = (call.call_result == 'ok')
+            res[call.id] = (call.call_result == RESULT_OK)
         
         return res
     
@@ -54,15 +57,15 @@ class webservice_call(osv.osv):
         for k,v in RETURN_CODES.iteritems():
             if re.compile(k).search(str(code)) is not None:
                 return v
-        return 'error'
+        return RESULT_ERROR
     
     def _get_most_serious(self, pcode, gcode):
         res = [self._return_code_parser(pcode),self._return_code_parser(gcode)]
-        if 'error' in res:
-            return 'error'
-        elif 'warn' in res:
-            return 'warn'
-        return 'ok'
+        if RESULT_ERROR in res:
+            return RESULT_ERROR
+        elif RESULT_WARNING in res:
+            return RESULT_WARNING
+        return RESULT_OK
 
     _columns= {
         'service_id': fields.many2one('bss.webservice', 'Webservice', required=True, ondelete='cascade'),
