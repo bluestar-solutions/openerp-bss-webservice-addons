@@ -197,7 +197,7 @@ class webservice(osv.osv):
         return super(webservice, self).create(cr, user, vals, context)
 
     
-    def default_read_encode(self, cr, uid, model, last_success, parameters, datetime_format):
+    def default_read_encode(self, cr, uid, model, last_success, parameters, db_keys, datetime_format):
         str_last_success = str(last_success)
         if parameters:
             search_param = "['&', "+parameters+", '|' ,('create_date', '>=', '"+str_last_success+"'), '&', ('write_date', '!=', False), ('write_date', '>=', '"+str_last_success+"')]"
@@ -228,8 +228,12 @@ class webservice(osv.osv):
                     else:
                         encode_dict[key]=None
                 
-            encode_dict['id']=encode.id
-            encode_dict['openerp_id']=encode.id
+            if db_keys:
+                for key in db_keys.split(','):
+                    encode_dict[key]=encode.id
+            else:
+                encode_dict['id']=encode.id
+                encode_dict['openerp_id']=encode.id
             encode_list.append(encode_dict)
         
         self._logger.debug('result list %s',encode_list)
@@ -248,17 +252,16 @@ class webservice(osv.osv):
         for decoded in decoded_list:
             self._logger.debug("Decoded is : %s, length is %d",str(decoded),len(decoded))
             if db_keys:
-                db_key_list = db_keys.split(',')
                 param_list = []
-                for key in  db_key_list:
+                for key in db_keys.split(','):
                     param_list.append((key,'=',decoded[key]))
-                oid = model.search(cr, uid, param_list)
-                if oid:
-                    oid = oid[0]
+                oids = model.search(cr, uid, param_list)
+                if oids:
+                    oid = oids[0]
             else:
-                oid = decoded['id']
+                oid = decoded.get('id', None)
                 if not oid:
-                    oid = decoded['openerp_id']
+                    oid = decoded.get('openerp_id', None)
  
             data = webservice.purge_data(field_list, decoded, datetime_format)
             
@@ -317,7 +320,7 @@ class webservice(osv.osv):
             method = getattr(model,service.encode_method_name)
             content = method(cr, uid, model, last_success, service.push_filter, service.datetime_format)
         else:
-            content = self.default_read_encode(cr, uid, model, last_success, service.push_filter, service.datetime_format)
+            content = self.default_read_encode(cr, uid, model, last_success, service.push_filter, service.get_db_key, service.datetime_format)
         self._logger.debug('Url : %s \nBody:\n%s\n', url, content)
         response, resp_content = http.request(url, "POST", headers=headers, body=content)
         self._logger.debug('Response: %s \n%s', response, resp_content)
