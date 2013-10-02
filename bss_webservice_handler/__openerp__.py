@@ -21,7 +21,7 @@
 
 {
     "name": "Webservice Handler",
-    'version': '7.0.2.0-3',
+    'version': '7.0.2.0-4',
     "category" : "Bluestar/Addons/WS",
     "complexity": "easy",
     "description": """
