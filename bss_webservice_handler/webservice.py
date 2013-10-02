@@ -248,17 +248,16 @@ class webservice(osv.osv):
         for decoded in decoded_list:
             self._logger.debug("Decoded is : %s, length is %d",str(decoded),len(decoded))
             if db_keys:
-                db_key_list = db_keys.split(',')
                 param_list = []
-                for key in  db_key_list:
+                for key in db_keys.split(','):
                     param_list.append((key,'=',decoded[key]))
-                oid = model.search(cr, uid, param_list)
-                if oid:
-                    oid = oid[0]
+                oids = model.search(cr, uid, param_list)
+                if oids:
+                    oid = oids[0]
             else:
-                oid = decoded['id']
+                oid = decoded.get('id', None)
                 if not oid:
-                    oid = decoded['openerp_id']
+                    oid = decoded.get('openerp_id', None)
  
             data = webservice.purge_data(field_list, decoded, datetime_format)
             
