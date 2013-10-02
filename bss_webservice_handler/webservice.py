@@ -316,7 +316,7 @@ class webservice(osv.osv):
             method = getattr(model,service.encode_method_name)
             content = method(cr, uid, model, last_success, service.push_filter, service.datetime_format)
         else:
-            content = self.default_read_encode(cr, uid, model, last_success, service.push_filter, service.get_db_key, service.datetime_format)
+            content = self.default_read_encode(cr, uid, model, last_success, service.push_filter, service.datetime_format)
         self._logger.debug('Url : %s \nBody:\n%s\n', url, content)
         response, resp_content = http.request(url, "POST", headers=headers, body=content)
         self._logger.debug('Response: %s \n%s', response, resp_content)
