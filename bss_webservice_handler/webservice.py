@@ -197,7 +197,7 @@ class webservice(osv.osv):
         return super(webservice, self).create(cr, user, vals, context)
 
     
-    def default_read_encode(self, cr, uid, model, last_success, parameters, db_keys, datetime_format):
+    def default_read_encode(self, cr, uid, model, last_success, parameters, datetime_format):
         str_last_success = str(last_success)
         if parameters:
             search_param = "['&', "+parameters+", '|' ,('create_date', '>=', '"+str_last_success+"'), '&', ('write_date', '!=', False), ('write_date', '>=', '"+str_last_success+"')]"
@@ -228,12 +228,8 @@ class webservice(osv.osv):
                     else:
                         encode_dict[key]=None
                 
-            if db_keys:
-                for key in db_keys.split(','):
-                    encode_dict[key]=encode.id
-            else:
-                encode_dict['id']=encode.id
-                encode_dict['openerp_id']=encode.id
+            encode_dict['id']=encode.id
+            encode_dict['openerp_id']=encode.id
             encode_list.append(encode_dict)
         
         self._logger.debug('result list %s',encode_list)
