@@ -411,11 +411,17 @@ class webservice(osv.osv):
             self.clear_call(cr, uid, [service_id], context)
             cr.commit()
         except DuplicateCallException, e:
-            self._logger.exception("DuplicateCallException occured during webservice: %s", e)
+            try:
+                self._logger.exception("DuplicateCallException occured during webservice: %s", e)
+            except:
+                self._logger.error("Exception during logging of DuplicateCallException")
             success= False
             service_cr.rollback()
         except Exception, e:
-            self._logger.exception("Exception occured during webservice: %s", e)
+            try:
+                self._logger.exception("Exception occured during webservice: %s", e)
+            except:
+                self._logger.error("Exception during logging of Exception")
             success= False
             service_cr.rollback()
             with webservice_lock:
