@@ -51,8 +51,7 @@ class webservice_handler(osv.osv_memory):
             'priority': 2,
             'interval_number': 1,
             'interval_type': 'minutes',
-            'nextcall': time.strftime(webservice.ISO8601_ALT_DATETIME_FORMAT,
-                                      datetime.now().timetuple()),  # in one minute
+            'nextcall': datetime.now().strftime(webservice.ISO8601_ALT_DATETIME_FORMAT),  # in one minute
             'numbercall': -1,
             'doall': False,
             'model': 'bss.webservice_handler',
